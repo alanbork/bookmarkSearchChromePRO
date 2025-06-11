@@ -1,5 +1,5 @@
 # bookmarkSearchChromePRO
-Full featured bookmark manager driven by keyboard for chrome (vs manafest). Incrementally search bookmarks with a hotkey (default is alt+b), and edit/delete by right clicking.
+"Full featured" flat bookmark manager designed for keyboard use. Incrementally search bookmarks with a hotkey (default is alt+b), and edit/delete by right clicking. For chrome (v3 manafest).
 For a simple searcher (no editing): https://github.com/alanbork/bookmarkSearchChrome
 
 
