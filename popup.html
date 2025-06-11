@@ -1,0 +1,39 @@
+<!-- version 2.0 rev 5 -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bookmark Search</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <input type="text" id="searchBox" placeholder="Search Bookmarks...">
+  <ul id="results">
+    </ul>
+
+  <div id="updateDialog" class="modal" style="display:none;">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h3 class="modal-title-text">Edit or Delete Bookmark</h3>
+              <!-- Using text '✕' for a common close button appearance -->
+              <button id="cancelActionButton" title="Close">X</button> 
+          </div>
+          
+          <div class="modal-body">
+              <input type="text" id="updateTitleInput" name="updateTitleInput" placeholder="Bookmark Title">
+              
+              <div class="url-display-container">
+                  <span class="url-label">URL:</span> <!-- Changed label from "New URL" to just "URL" -->
+                  <input type="text" id="updateUrlInput" class="url-value-input">
+              </div>
+          </div>
+          
+          <div class="modal-buttons"> <!-- This is now effectively the footer -->
+              <button id="updateBookmarkButton">Update</button>
+              <button id="deleteBookmarkButton">Delete</button>
+          </div>
+      </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>	
