@@ -11,9 +11,9 @@ To install an unpacked extension go to chrome://extensions/ and click the "load 
 
 # Permissions
  
-    "bookmarks",
-    "tabs",
-    "history",
-    "storage"
+    "bookmarks", should be self explanatory, but if not this is probably the wrong tool for you
+    "tabs", so we can open the bookmark
+    "history", so we can sort the search results by frequency
+    "storage", so we can remember the last bookmark visited using this tool
  
 
