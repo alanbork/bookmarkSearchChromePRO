@@ -1,6 +1,10 @@
-// version 2.0 rev 8
+// version 2.0 rev 9 (always bump this number with each code change)
 document.addEventListener('DOMContentLoaded', () => {
     const searchBox = document.getElementById('searchBox');
+    if (searchBox) {
+        searchBox.disabled = true;
+        searchBox.placeholder = "Loading bookmarks...";
+    }
     const resultsList = document.getElementById('results');
     
     const updateDialog = document.getElementById('updateDialog');
@@ -138,40 +142,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function loadBookmarks(callback) {
-        chrome.bookmarks.getTree((bookmarks) => {
-            allBookmarks = getAllBookmarks(bookmarks);
-            const searchTerm = searchBox ? searchBox.value.toLowerCase() : ""; // Guard searchBox
-            if (searchTerm) {
-                filteredBookmarks = allBookmarks.filter((bookmark) => {
-                    return (
-                        bookmark.title.toLowerCase().includes(searchTerm) ||
-                        bookmark.url.toLowerCase().includes(searchTerm)
-                    );
-                });
-            } else {
-                filteredBookmarks = allBookmarks;
-            }
-            displayResults(filteredBookmarks);
-            if (searchBox) searchBox.focus(); 
+    async function loadBookmarks(callback) {
+        const bookmarkTreeNodes = await new Promise(resolve => chrome.bookmarks.getTree(resolve));
+        let bookmarks = getAllBookmarks(bookmarkTreeNodes);
 
-            if (callback && typeof callback === 'function') {
-                callback();
-            }
-        });
+        const historyPromises = bookmarks.map(bookmark =>
+            new Promise(resolve => {
+                const timeout = setTimeout(() => {
+                    console.warn(`History search for ${bookmark.url} timed out.`);
+                    bookmark.visitCount = 0;
+                    resolve(bookmark);
+                }, 500); // 500ms timeout
+
+                chrome.history.getVisits({ url: bookmark.url }, (visitItems) => {
+                    clearTimeout(timeout);
+                    if (chrome.runtime.lastError) {
+                        bookmark.visitCount = 0;
+                        resolve(bookmark);
+                        return;
+                    }
+                    bookmark.visitCount = visitItems ? visitItems.length : 0;
+                    resolve(bookmark);
+                });
+            })
+        );
+
+        allBookmarks = await Promise.all(historyPromises);
+        allBookmarks.sort((a, b) => b.visitCount - a.visitCount);
+
+        updateDisplayedBookmarks();
+
+        if (searchBox) {
+            searchBox.disabled = false;
+            searchBox.placeholder = "Search Bookmarks...";
+            searchBox.focus();
+        }
+
+        if (callback && typeof callback === 'function') {
+            callback();
+        }
     }
 
     if (searchBox) { 
-        searchBox.addEventListener('input', () => {
-            const searchTerm = searchBox.value.toLowerCase();
-            filteredBookmarks = allBookmarks.filter((bookmark) => {
-                return (
-                    bookmark.title.toLowerCase().includes(searchTerm) ||
-                    bookmark.url.toLowerCase().includes(searchTerm)
-                );
-            });
-            displayResults(filteredBookmarks);
-        });
+        searchBox.addEventListener('input', updateDisplayedBookmarks);
     }
 
     function getAllBookmarks(bookmarks) {
@@ -186,10 +199,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return allBookmarksArr;
     }
 
-   function displayResults(bookmarks) {
+    async function updateDisplayedBookmarks() {
+        const searchTerm = searchBox.value.toLowerCase();
+
+        if (searchTerm) {
+            filteredBookmarks = allBookmarks.filter(b => 
+                b.title.toLowerCase().includes(searchTerm) || 
+                b.url.toLowerCase().includes(searchTerm)
+            );
+            displayResults(filteredBookmarks);
+        } else {
+            const data = await new Promise(resolve => chrome.storage.local.get('lastOpenedUrl', resolve));
+            const lastOpenedUrl = data.lastOpenedUrl;
+            
+            let displayList = [...allBookmarks];
+
+            if (lastOpenedUrl) {
+                const lastOpenedIndex = displayList.findIndex(b => b.url === lastOpenedUrl);
+                if (lastOpenedIndex > 0) {
+                    const [lastOpenedBookmark] = displayList.splice(lastOpenedIndex, 1);
+                    displayList.unshift(lastOpenedBookmark);
+                }
+            }
+            filteredBookmarks = displayList;
+            displayResults(displayList);
+        }
+    }
+
+    function displayResults(bookmarks) {
         if (!resultsList) return; 
         resultsList.innerHTML = '';
-        selectedIndex = -1; 
+        selectedIndex = bookmarks.length > 0 ? 0 : -1;
         bookmarks.forEach((bookmark, index) => {
             const listItem = document.createElement('li');
             listItem.dataset.index = index; 
@@ -215,10 +255,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function navigateToBookmark(url) {
-        if (chrome.tabs && chrome.tabs.update) {
-            chrome.tabs.update({ url: url });
-        }
-        window.close();
+        chrome.storage.local.set({ 'lastOpenedUrl': url }, () => {
+            if (chrome.tabs && chrome.tabs.update) {
+                chrome.tabs.update({ url: url });
+            }
+            window.close();
+        });
     }
 
     function updateSelection() {
@@ -248,15 +290,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedIndex = Math.max(selectedIndex - 1, 0);
                 updateSelection();
             } else if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent default form submission behavior
+                event.preventDefault(); 
                 if (selectedIndex >= 0 && filteredBookmarks[selectedIndex]) {
-                    // An item is actively selected via arrow keys
                     navigateToBookmark(filteredBookmarks[selectedIndex].url);
                 } else if (filteredBookmarks.length > 0) {
-                    // No active selection, but there are results
-                    navigateToBookmark(filteredBookmarks[0].url); // Navigate to the first one
+                    navigateToBookmark(filteredBookmarks[0].url);
                 }
-                // If selectedIndex < 0 AND filteredBookmarks.length is 0, nothing happens
             }
         });
     }
@@ -300,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 console.error("Error querying tabs:", chrome.runtime.lastError.message);
                                 displayUrl = 'Error: ' + chrome.runtime.lastError.message;
                             } else if (tabs && tabs.length > 0 && tabs[0].url) {
-                                displayUrl = tabs[0].url; // Pre-fill with any URL
+                                displayUrl = tabs[0].url;
                             }
                             
                             if (updateUrlInput) { 
