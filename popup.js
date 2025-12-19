@@ -2,8 +2,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     const searchBox = document.getElementById('searchBox');
     if (searchBox) {
-        searchBox.disabled = true;
-        searchBox.placeholder = "Loading bookmarks...";
+        searchBox.disabled = false;
+        searchBox.placeholder = "Search Bookmarks...";
+        searchBox.focus();
     }
     const resultsList = document.getElementById('results');
     
@@ -171,12 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         allBookmarks.sort((a, b) => b.visitCount - a.visitCount);
 
         updateDisplayedBookmarks();
-
-        if (searchBox) {
-            searchBox.disabled = false;
-            searchBox.placeholder = "Search Bookmarks...";
-            searchBox.focus();
-        }
 
         if (callback && typeof callback === 'function') {
             callback();
