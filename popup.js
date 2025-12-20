@@ -1,65 +1,48 @@
-// version 2.0 rev 9 (always bump this number with each code change)
+// version 4.0 rev 9 (always increment rev number for any change)
+// most recent change: commented all functions/listeners
 document.addEventListener('DOMContentLoaded', () => {
-    const searchBox = document.getElementById('searchBox');
-    if (searchBox) {
-        searchBox.disabled = true;
-        searchBox.placeholder = "Loading bookmarks...";
+    function getElementOrFail(elementID) {
+        const element = document.getElementById(elementID);
+        if (!element) console.error("CRITICAL: " + elementID + " not found!");
+        return element;
     }
-    const resultsList = document.getElementById('results');
+
+    const searchBox = getElementOrFail('searchBox');
+    searchBox.disabled = false;
+    searchBox.placeholder = "Search Bookmarks...";
+    searchBox.focus();
+    const resultsList = getElementOrFail('results');
     
-    const updateDialog = document.getElementById('updateDialog');
-    const updateTitleInput = document.getElementById('updateTitleInput');
-    const updateUrlInput = document.getElementById('updateUrlInput'); 
-    const updateBookmarkButton = document.getElementById('updateBookmarkButton');
-    const deleteBookmarkButton = document.getElementById('deleteBookmarkButton');
-    const cancelActionButton = document.getElementById('cancelActionButton');
+    const updateDialog = getElementOrFail('updateDialog');
+    const updateTitleInput = getElementOrFail('updateTitleInput');
+    const updateUrlInput = getElementOrFail('updateUrlInput'); 
+    const updateBookmarkButton = getElementOrFail('updateBookmarkButton');
+    const deleteBookmarkButton = getElementOrFail('deleteBookmarkButton');
+    const cancelActionButton = getElementOrFail('cancelActionButton');
 
     let selectedIndex = -1;
     let allBookmarks = [];
     let filteredBookmarks = [];
-    let currentBookmarkId = null; 
+    let currentBookmarkId = null;
 
-    // Critical checks for all fetched elements
-    if (!searchBox) console.error("CRITICAL: searchBox not found!");
-    if (!resultsList) console.error("CRITICAL: resultsList not found!");
-    if (!updateDialog) console.error("CRITICAL: updateDialog element not found.");
-    if (!updateTitleInput) console.error("CRITICAL: updateTitleInput element not found.");
-    if (!updateUrlInput) console.error("CRITICAL: updateUrlInput element not found!");
-    if (!updateBookmarkButton) console.error("CRITICAL: updateBookmarkButton element not found.");
-    if (!deleteBookmarkButton) console.error("CRITICAL: deleteBookmarkButton element not found.");
-    if (!cancelActionButton) console.error("CRITICAL: cancelActionButton element not found.");
-
+    // Hides the edit dialog and resets its state.
     function hideUpdateDialog() {
-        if (updateDialog) { 
-             updateDialog.style.display = 'none';
-        }
-        if (updateTitleInput) { // Added missing clear for title input
-            updateTitleInput.value = '';
-        }
-        if (updateUrlInput) { 
-            updateUrlInput.value = ''; 
-        }
-        if (deleteBookmarkButton) { 
-            deleteBookmarkButton.textContent = 'Delete';
-            deleteBookmarkButton.dataset.deleteState = 'initial'; 
-            deleteBookmarkButton.classList.remove('confirming-delete');
-        }
+        updateDialog.style.display = 'none';
+        updateTitleInput.value = ''; // Added missing clear for title input
+        updateUrlInput.value = ''; 
+        deleteBookmarkButton.textContent = 'Delete';
+        deleteBookmarkButton.dataset.deleteState = 'initial'; 
+        deleteBookmarkButton.classList.remove('confirming-delete');
         currentBookmarkId = null; 
     }
 
-    if (cancelActionButton) {
-        cancelActionButton.addEventListener('click', () => {
-            hideUpdateDialog();
-        });
-    } 
+    // Hides the dialog when the cancel button is clicked.
+    cancelActionButton.addEventListener('click', () => {
+        hideUpdateDialog();
+    });
 
-    if (updateBookmarkButton) {
-        updateBookmarkButton.addEventListener('click', () => {
-            if (!updateTitleInput || !updateUrlInput) { // Guard against null inputs
-                console.error("Update inputs not found for update action.");
-                hideUpdateDialog();
-                return;
-            }
+    // Updates the bookmark with the new title and URL when the update button is clicked.
+    updateBookmarkButton.addEventListener('click', () => {
             const newTitle = updateTitleInput.value.trim(); 
             const newUrlFromInput = updateUrlInput.value.trim(); 
 
@@ -71,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!newUrlFromInput || !(newUrlFromInput.startsWith('http:') || newUrlFromInput.startsWith('https:') || newUrlFromInput.startsWith('ftp:') || newUrlFromInput.startsWith('file:'))) {
                 alert("Please enter a valid URL in the URL field (e.g., starting with http://, https://, ftp://, or file://).");
-                if (updateUrlInput) updateUrlInput.focus(); 
+                updateUrlInput.focus(); 
                 return; 
             }
 
@@ -83,10 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 hideUpdateDialog(); 
             });
         });
-    } 
 
-    if (deleteBookmarkButton) {
-        deleteBookmarkButton.addEventListener('click', () => {
+    // Handles the two-step delete confirmation process.
+    deleteBookmarkButton.addEventListener('click', () => {
             if (!currentBookmarkId) {
                 console.error("No bookmark ID for delete action.");
                 hideUpdateDialog(); 
@@ -104,45 +86,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-    } 
 
-    if (updateTitleInput) {
-        updateTitleInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                event.preventDefault(); 
-                if (updateBookmarkButton) { 
-                    updateBookmarkButton.click(); 
-                }
-            }
-        });
-    }
-    
-    if (updateUrlInput) {
-        updateUrlInput.addEventListener('keydown', (event) => {
+    // Adds a keydown listener to an input element to handle the Enter key.
+    function setupEnterKeyListener(inputElement) {
+        inputElement.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                if (updateBookmarkButton) {
-                    updateBookmarkButton.click();
-                }
+                updateBookmarkButton.click();
             }
         });
     }
 
+    setupEnterKeyListener(updateTitleInput);
+    setupEnterKeyListener(updateUrlInput);
+
+    // Closes the dialog if the user clicks outside of its content area.
     window.addEventListener('click', (event) => {
-        if (updateDialog && updateDialog.style.display === 'flex' && event.target === updateDialog) {
+        if (updateDialog.style.display === 'flex' && event.target === updateDialog) {
             hideUpdateDialog();
         }
     });
 
+    // Closes the dialog if the user presses the Escape key.
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-            if (updateDialog && (updateDialog.style.display === 'block' || updateDialog.style.display === 'flex')) {
+            if (updateDialog.style.display === 'block' || updateDialog.style.display === 'flex') {
                 hideUpdateDialog();
             }
         }
     });
 
-    async function loadBookmarks(callback) {
+    // Fetches all bookmarks, gets their visit counts, sorts them by frequency, and updates the display.
+    async function loadBookmarks() {
         const bookmarkTreeNodes = await new Promise(resolve => chrome.bookmarks.getTree(resolve));
         let bookmarks = getAllBookmarks(bookmarkTreeNodes);
 
@@ -171,22 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
         allBookmarks.sort((a, b) => b.visitCount - a.visitCount);
 
         updateDisplayedBookmarks();
-
-        if (searchBox) {
-            searchBox.disabled = false;
-            searchBox.placeholder = "Search Bookmarks...";
-            searchBox.focus();
-        }
-
-        if (callback && typeof callback === 'function') {
-            callback();
-        }
     }
 
-    if (searchBox) { 
-        searchBox.addEventListener('input', updateDisplayedBookmarks);
-    }
+    // Updates the displayed bookmarks in real-time as the user types in the search box.
+    searchBox.addEventListener('input', updateDisplayedBookmarks);
 
+    // Recursively traverses the bookmark tree to create a flat list of all bookmarks.
     function getAllBookmarks(bookmarks) {
         let allBookmarksArr = [];
         bookmarks.forEach((bookmark) => {
@@ -199,6 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return allBookmarksArr;
     }
 
+    // Filters and displays bookmarks based on the search term or shows all bookmarks if the search is empty.
     async function updateDisplayedBookmarks() {
         const searchTerm = searchBox.value.toLowerCase();
 
@@ -226,8 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Adds a list of bookmarks to the results list in the UI, plus adds click handler
     function displayResults(bookmarks) {
-        if (!resultsList) return; 
         resultsList.innerHTML = '';
         selectedIndex = bookmarks.length > 0 ? 0 : -1;
         bookmarks.forEach((bookmark, index) => {
@@ -254,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSelection();
     }
 
+    // Navigates to the given URL in the current tab and closes the popup.
     function navigateToBookmark(url) {
         chrome.storage.local.set({ 'lastOpenedUrl': url }, () => {
             if (chrome.tabs && chrome.tabs.update) {
@@ -263,8 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Updates the visual styling of the selected item in the bookmark list.
     function updateSelection() {
-        if (!resultsList) return; 
         const listItems = resultsList.querySelectorAll('li');
         listItems.forEach((item, index) => {
             if (index === selectedIndex) {
@@ -275,9 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (searchBox) { 
-        searchBox.addEventListener('keydown', (event) => {
-            if (!resultsList) return; 
+    // Handles keyboard navigation (up/down arrows, Enter) in the results list.
+    searchBox.addEventListener('keydown', (event) => {
             const listItems = resultsList.querySelectorAll('li');
             if (listItems.length === 0) return;
 
@@ -298,12 +264,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-    }
     
     loadBookmarks(); 
 
-    if (resultsList) { 
-        resultsList.addEventListener('contextmenu', (event) => {
+    // Opens the edit dialog for a given bookmark and pre-fills its title and URL.
+    async function openEditDialog(bookmark) {
+        currentBookmarkId = bookmark.id;
+        updateTitleInput.value = bookmark.title;
+        deleteBookmarkButton.textContent = 'Delete';
+        deleteBookmarkButton.dataset.deleteState = 'initial';
+        deleteBookmarkButton.classList.remove('confirming-delete');
+        updateUrlInput.value = 'Loading URL...';
+
+        return new Promise((resolve) => {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                let displayUrl = 'Error: Could not get current tab URL.';
+                if (chrome.runtime.lastError) {
+                    console.error("Error querying tabs:", chrome.runtime.lastError.message);
+                    displayUrl = 'Error: ' + chrome.runtime.lastError.message;
+                } else if (tabs && tabs.length > 0 && tabs[0].url) {
+                    displayUrl = tabs[0].url;
+                }
+
+                updateUrlInput.value = displayUrl;
+                updateDialog.style.display = 'flex';
+                updateTitleInput.focus();
+                resolve();
+            });
+        });
+    }
+
+    // Adds a right-click context menu to each bookmark item in the list.
+    resultsList.addEventListener('contextmenu', async (event) => {
+            event.preventDefault(); 
+            event.stopPropagation();
             let targetListItem = event.target;
             while (targetListItem && targetListItem.tagName !== 'LI' && targetListItem !== resultsList) {
                 targetListItem = targetListItem.parentElement;
@@ -315,45 +309,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const index = parseInt(indexData, 10);
                     if (!isNaN(index) && filteredBookmarks[index]) {
                         const bookmark = filteredBookmarks[index];
-                        event.preventDefault(); 
-                        
-                        currentBookmarkId = bookmark.id; 
-
-                        if (updateTitleInput) {
-                            updateTitleInput.value = bookmark.title; 
-                        }
-                        
-                        if (deleteBookmarkButton) {
-                            deleteBookmarkButton.textContent = 'Delete';
-                            deleteBookmarkButton.dataset.deleteState = 'initial';
-                            deleteBookmarkButton.classList.remove('confirming-delete');
-                        }
-
-                        if (updateUrlInput) { 
-                            updateUrlInput.value = 'Loading URL...'; 
-                        }
-
-                        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                            let displayUrl = 'Error: Could not get current tab URL.';
-                            if (chrome.runtime.lastError) {
-                                console.error("Error querying tabs:", chrome.runtime.lastError.message);
-                                displayUrl = 'Error: ' + chrome.runtime.lastError.message;
-                            } else if (tabs && tabs.length > 0 && tabs[0].url) {
-                                displayUrl = tabs[0].url;
-                            }
-                            
-                            if (updateUrlInput) { 
-                                updateUrlInput.value = displayUrl; 
-                            }
-
-                            if (updateDialog) {
-                                updateDialog.style.display = 'flex'; 
-                            }
-                            if (updateTitleInput) {
-                                updateTitleInput.focus(); 
-                            }
-                        });
-                        
+						await new Promise(resolve => setTimeout(resolve, 50)); // debounce right click, probably a short term browswer bug hack that won't be needed long
+                        await openEditDialog(bookmark);
                     } else {
                         console.warn("Could not get bookmark data for context menu from item index:", indexData);
                     }
@@ -362,5 +319,4 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } 
         });
-    }
 });

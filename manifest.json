@@ -1,7 +1,7 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 4,
   "name": "Bookmark Searcher, PRO",
-  "version": "3.0",
+  "version": "4.0",
   "description": "A Chrome extension to quickly search your bookmarks (alt+b). Left click to update bookmark to current page (or delete entirely).",
   "action": {
     "default_popup": "popup.html",

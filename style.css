@@ -1,4 +1,5 @@
-// version 2.0 rev 17
+// version 4.0 rev 17 (always increment this number for any change), plus 1 line summary of what that change was below
+// fixed search bar width
 /* Global Box Sizing */
 html, body {
     width: 100%;
@@ -6,7 +7,7 @@ html, body {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    overflow: hidden; 
+    overflow-x: hidden; 
 }
 
 /* General Styles */
@@ -18,9 +19,9 @@ body {
 }
 
 #searchBox {
-    width: 95%;
+    width: calc(100% - 20px);
     padding: 10px;
-    margin: 10px auto;
+    margin: 10px 10px;
     display: block;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -31,13 +32,14 @@ body {
 #results {
     list-style: none;
     padding: 0;
-    margin: 0 10px; 
+    margin: 0 10px;
     max-height: 450px;
     min-height: 300px;  /* UPDATED: Ensure a substantial min-height */
     overflow-y: auto;
     overflow-x: hidden; 
     border: 1px solid #ccc;
     border-radius: 4px;
+
 }
 
 #results > li {
